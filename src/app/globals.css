@@ -1,26 +1,176 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-ink-950: #050508;
+  --color-ink-900: #08080d;
+  --color-ink-850: #0b0b12;
+  --color-ink-800: #101018;
+  --color-ink-700: #16161f;
+
+  --color-brand-50: #f2f0ff;
+  --color-brand-200: #cdc4ff;
+  --color-brand-300: #ab9bff;
+  --color-brand-400: #8b72ff;
+  --color-brand-500: #7048f5;
+  --color-brand-600: #5b2fd8;
+  --color-brand-700: #4722ab;
+
+  --color-aqua-400: #35e0d6;
+  --color-aqua-500: #14c8c0;
+
+  --color-amber-glow: #ffb347;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --shadow-glow: 0 0 0 1px rgb(255 255 255 / 0.06), 0 24px 60px -20px rgb(112 72 245 / 0.45);
+  --shadow-card: 0 1px 0 0 rgb(255 255 255 / 0.04) inset, 0 20px 50px -30px rgb(0 0 0 / 0.9);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  * {
+    border-color: rgb(255 255 255 / 0.08);
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-ink-950);
+    color: #e7e7ef;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background-color: rgb(112 72 245 / 0.4);
+    color: #fff;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(255 255 255 / 0.12);
+    border-radius: 999px;
+    border: 3px solid var(--color-ink-950);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgb(255 255 255 / 0.22);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility container-page {
+  width: 100%;
+  margin-inline: auto;
+  max-width: 80rem;
+  padding-inline: 1.25rem;
+}
+
+@utility surface {
+  background-color: rgb(255 255 255 / 0.03);
+  border: 1px solid rgb(255 255 255 / 0.08);
+  backdrop-filter: blur(12px);
+}
+
+@utility text-gradient {
+  background-image: linear-gradient(100deg, #ffffff 10%, var(--color-brand-300) 55%, var(--color-aqua-400) 95%);
+  background-clip: text;
+  color: transparent;
+}
+
+/* Fundo com auroras suaves usado no layout raiz */
+.aurora {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.aurora::before,
+.aurora::after {
+  content: "";
+  position: absolute;
+  width: 46rem;
+  height: 46rem;
+  border-radius: 999px;
+  filter: blur(120px);
+  opacity: 0.5;
+}
+
+.aurora::before {
+  top: -18rem;
+  left: -10rem;
+  background: radial-gradient(circle, rgb(112 72 245 / 0.55), transparent 65%);
+  animation: drift 22s ease-in-out infinite alternate;
+}
+
+.aurora::after {
+  top: -6rem;
+  right: -14rem;
+  background: radial-gradient(circle, rgb(20 200 192 / 0.32), transparent 65%);
+  animation: drift 28s ease-in-out infinite alternate-reverse;
+}
+
+.grid-veil {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: linear-gradient(rgb(255 255 255 / 0.028) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.028) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 100% 60% at 50% 0%, #000 40%, transparent 100%);
+}
+
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(6rem, 4rem, 0) scale(1.15);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  animation: marquee 38s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora::before,
+  .aurora::after,
+  .animate-marquee,
+  .animate-rise {
+    animation: none;
+  }
 }

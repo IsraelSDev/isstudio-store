@@ -1,0 +1,26 @@
+import type { Metadata } from "next";
+import { categories } from "@/lib/catalog";
+import { CategoryCard } from "@/components/category/category-card";
+import { SectionHeader } from "@/components/ui/section-header";
+
+export const metadata: Metadata = {
+  title: "Categorias",
+  description: "Explore as 10 linhas de soluções da ISStudio Store.",
+};
+
+export default function CategoriesPage() {
+  return (
+    <div className="container-page py-12 sm:py-16">
+      <SectionHeader
+        eyebrow="Categorias"
+        title="Escolha o tipo de solução"
+        description="Cada categoria agrupa produtos com o mesmo modelo de entrega — do código-fonte à assinatura SaaS."
+      />
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {categories.map((c) => (
+          <CategoryCard key={c.slug} category={c} />
+        ))}
+      </div>
+    </div>
+  );
+}
