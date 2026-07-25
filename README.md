@@ -8,16 +8,35 @@ Marketplace de soluções digitais — sistemas, APIs, templates, plugins, licen
 - **React 19** + TypeScript
 - **Tailwind CSS v4**
 - Carrinho com persistência em `localStorage`
-- Checkout simulado com **Asaas**, **Mercado Pago** e **PayPal**
+- **Asaas real** (mesmo cliente/fluxo do Capivara: Pix QR + cartão/boleto)
+- Mercado Pago e PayPal ainda simulados
 
 ## Como rodar
 
 ```bash
 npm install
+cp .env.example .env.local
+# Cole a mesma ASAAS_API_KEY do Capivara (Render / sandbox.asaas.com)
 npm run dev
 ```
 
 Abra [http://localhost:3000](http://localhost:3000).
+
+### Asaas (mesmas vars do Capivara)
+
+```env
+ASAAS_API_KEY=$aact_hmlg_...   # ou produção
+ASAAS_ENV=sandbox
+ASAAS_WEBHOOK_TOKEN=seu_token
+```
+
+| Endpoint | Uso |
+|----------|-----|
+| `POST /api/payments/asaas` | Cria cobrança (Pix / cartão / boleto) |
+| `GET /api/payments/asaas/[id]/status` | Polling de confirmação Pix |
+| `POST /api/webhook/asaas` | Webhook `PAYMENT_RECEIVED` / `PAYMENT_CONFIRMED` |
+
+Webhook no painel Asaas: `{APP_URL}/api/webhook/asaas` — header `asaas-access-token`.
 
 ## Rotas
 
