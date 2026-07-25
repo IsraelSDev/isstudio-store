@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/context/cart-context";
 
 export function AddToCartButton({ product }: { product: Product }) {
-  const { addItem } = useCart();
+  const { addItem, setOpen } = useCart();
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -20,6 +20,7 @@ export function AddToCartButton({ product }: { product: Product }) {
         className="flex-1"
         onClick={() => {
           addItem(product);
+          setOpen(false);
           window.location.href = "/checkout";
         }}
       >

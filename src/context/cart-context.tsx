@@ -15,6 +15,7 @@ interface CartContextValue {
   items: CartItem[];
   count: number;
   subtotal: number;
+  hydrated: boolean;
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
@@ -91,6 +92,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       count,
       subtotal,
+      hydrated,
       addItem,
       removeItem,
       updateQuantity,
@@ -102,6 +104,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       items,
       count,
       subtotal,
+      hydrated,
       addItem,
       removeItem,
       updateQuantity,

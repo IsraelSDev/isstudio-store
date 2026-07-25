@@ -10,9 +10,10 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
-  const { count, setOpen } = useCart();
+  const { count, setOpen, hydrated } = useCart();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const cartCount = hydrated ? count : 0;
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/5 bg-ink-950/70 backdrop-blur-xl">
@@ -73,20 +74,16 @@ export function Header() {
           >
             <ShoppingBag size={18} />
             <span className="hidden sm:inline">Carrinho</span>
-            {count > 0 && (
+            {cartCount > 0 && (
               <span className="absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[11px] font-bold text-white shadow-lg">
-                {count}
+                {cartCount}
               </span>
             )}
           </button>
 
-          <Button
-            size="sm"
-            className="hidden md:inline-flex"
-            onClick={() => (window.location.href = "/checkout")}
-          >
-            Começar
-          </Button>
+          <Link href="/catalogo" className="hidden md:inline-flex">
+            <Button size="sm">Começar</Button>
+          </Link>
 
           <button
             type="button"
