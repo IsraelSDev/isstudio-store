@@ -105,7 +105,8 @@ export async function createCheckoutPreference(opts: {
       title: item.title.slice(0, 256),
       description: (item.description || item.title).slice(0, 256),
       quantity: item.quantity,
-      unit_price: Number(item.unitPrice),
+      // MP exige número com até 2 casas; evita float estranho
+      unit_price: Math.round(Number(item.unitPrice) * 100) / 100,
       currency_id: "BRL",
       category_id: "services",
     })),
@@ -118,21 +119,27 @@ export async function createCheckoutPreference(opts: {
     external_reference: opts.orderId,
     statement_descriptor: "ISSTUDIO",
     binary_mode: false,
-    back_urls: {
-      success: `${base}/checkout/sucesso`,
-      failure: `${base}/checkout/falha`,
-      pending: `${base}/checkout/pendente`,
-    },
     metadata: {
       order_id: opts.orderId,
       source: "isstudio-store",
     },
   };
 
-  // auto_return e notification_url exigem URL pública https em muitos casos
+  /**
+   * Importante: back_urls com http:// ou localhost são DESCARTADAS pelo MP.
+   * Com back_urls vazias, o botão "Pagar" do Checkout Pro fica DESATIVADO.
+   * Só enviamos success/failure/pending + auto_return + webhook em HTTPS público.
+   * Docs: https://www.mercadopago.com.br/ajuda/botao-pagamento-desativado-ao-testar-checkout-pro_48609
+   */
   const isPublicHttps =
     /^https:\/\//i.test(base) && !/localhost|127\.0\.0\.1/i.test(base);
+
   if (isPublicHttps) {
+    body.back_urls = {
+      success: `${base}/checkout/sucesso`,
+      failure: `${base}/checkout/falha`,
+      pending: `${base}/checkout/pendente`,
+    };
     body.auto_return = "approved";
     body.notification_url = `${base}/api/webhook/mercadopago`;
   }
