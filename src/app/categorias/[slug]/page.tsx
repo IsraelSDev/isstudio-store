@@ -21,9 +21,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const category = getCategory(slug);
   if (!category) return { title: "Categoria" };
+
+  const url = `/categorias/${category.slug}`;
+  const title = `${category.name} — soluções digitais`;
+  const description = `${category.description} Explore ${category.short.toLowerCase()} na ISStudio Store.`;
+
   return {
     title: category.name,
-    description: category.description,
+    description,
+    keywords: [category.name, category.short, "ISStudio Store", "marketplace"],
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 

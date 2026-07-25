@@ -19,6 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { ProductCard } from "@/components/product/product-card";
 import { categoryIcons } from "@/lib/icons";
 import { AddToCartButton } from "@/components/product/add-to-cart-button";
+import { JsonLd } from "@/components/seo/json-ld";
+import { absoluteUrl, siteConfig } from "@/lib/seo";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -30,9 +32,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = getProduct(slug);
   if (!product) return { title: "Produto" };
+
+  const category = getCategory(product.category);
+  const title = `${product.name} — ${category?.name ?? "Solução"}`;
+  const description = `${product.tagline}. ${product.description} A partir de ${formatPrice(product.price)}.`;
+  const url = absoluteUrl(`/produto/${product.slug}`);
+
   return {
     title: product.name,
-    description: product.tagline,
+    description,
+    keywords: [
+      product.name,
+      category?.name ?? "",
+      ...product.stack,
+      "ISStudio Store",
+    ].filter(Boolean),
+    alternates: { canonical: url },
+    openGraph: {
+      type: "website",
+      url,
+      title,
+      description,
+      siteName: siteConfig.name,
+      locale: siteConfig.locale,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 
@@ -47,8 +75,66 @@ export default async function ProductPage({ params }: Props) {
     .filter((p) => p.id !== product.id)
     .slice(0, 3);
 
+  const productLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.longDescription || product.description,
+    sku: product.id,
+    brand: {
+      "@type": "Brand",
+      name: "ISStudio",
+    },
+    category: category.name,
+    offers: {
+      "@type": "Offer",
+      url: absoluteUrl(`/produto/${product.slug}`),
+      priceCurrency: "BRL",
+      price: product.price,
+      availability: "https://schema.org/InStock",
+      priceValidUntil: new Date(
+        new Date().setFullYear(new Date().getFullYear() + 1),
+      )
+        .toISOString()
+        .slice(0, 10),
+    },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: product.rating,
+      reviewCount: product.reviews,
+      bestRating: 5,
+      worstRating: 1,
+    },
+  };
+
+  const breadcrumbLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: absoluteUrl("/"),
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: category.name,
+        item: absoluteUrl(`/categorias/${category.slug}`),
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: product.name,
+        item: absoluteUrl(`/produto/${product.slug}`),
+      },
+    ],
+  };
+
   return (
     <div className="container-page py-12 sm:py-16">
+      <JsonLd data={[productLd, breadcrumbLd]} />
       <nav className="mb-8 flex flex-wrap items-center gap-2 text-xs text-white/40">
         <Link href="/" className="hover:text-white/70">
           Home

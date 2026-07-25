@@ -4,8 +4,16 @@ import { CategoryCard } from "@/components/category/category-card";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
-  title: "Categorias",
-  description: "Explore as 10 linhas de soluções da ISStudio Store.",
+  title: "Categorias de soluções digitais",
+  description:
+    "Dez linhas de produto: sistemas, APIs, templates, plugins, licenças, SaaS, IA, white label, hospedagem e assinaturas.",
+  alternates: { canonical: "/categorias" },
+  openGraph: {
+    title: "Categorias · ISStudio Store",
+    description:
+      "Escolha o tipo de solução e encontre o que acelera o seu negócio.",
+    url: "/categorias",
+  },
 };
 
 export default function CategoriesPage() {

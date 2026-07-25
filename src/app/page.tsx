@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,6 +13,12 @@ import { CategoryCard } from "@/components/category/category-card";
 import { ProductCard } from "@/components/product/product-card";
 import { SectionHeader } from "@/components/ui/section-header";
 import { Button } from "@/components/ui/button";
+import { JsonLd } from "@/components/seo/json-ld";
+import { absoluteUrl, siteConfig } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const trust = [
   { icon: ShieldCheck, label: "Código e licenças comerciais" },
@@ -34,8 +41,21 @@ const logos = [
 export default function HomePage() {
   const featured = getFeaturedProducts();
 
+  const itemListLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: `Destaques · ${siteConfig.name}`,
+    itemListElement: featured.map((p, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      url: absoluteUrl(`/produto/${p.slug}`),
+      name: p.name,
+    })),
+  };
+
   return (
     <>
+      <JsonLd data={itemListLd} />
       {/* HERO */}
       <section className="relative overflow-hidden">
         <div className="container-page pt-16 pb-20 sm:pt-24 sm:pb-28">

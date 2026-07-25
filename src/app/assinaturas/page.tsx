@@ -7,8 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { SectionHeader } from "@/components/ui/section-header";
 
 export const metadata: Metadata = {
-  title: "Planos e Assinaturas",
-  description: "Assinaturas ISStudio Store — acesso contínuo a soluções e créditos.",
+  title: "Planos e assinaturas Studio+",
+  description:
+    "Assinaturas ISStudio Store com templates ilimitados, créditos de API, descontos no catálogo e suporte prioritário. Planos mensal e anual.",
+  alternates: { canonical: "/assinaturas" },
+  openGraph: {
+    title: "Planos Studio+ · ISStudio Store",
+    description:
+      "Acesso contínuo a soluções, créditos de API e descontos no catálogo.",
+    url: "/assinaturas",
+  },
 };
 
 export default function AssinaturasPage() {

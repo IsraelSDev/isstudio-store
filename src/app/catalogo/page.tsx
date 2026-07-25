@@ -5,8 +5,16 @@ import { SectionHeader } from "@/components/ui/section-header";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Catálogo",
-  description: "Todas as soluções digitais da ISStudio Store.",
+  title: "Catálogo completo de soluções digitais",
+  description:
+    "Explore sistemas, APIs, templates, plugins, SaaS, IA, white label, hospedagem e assinaturas na ISStudio Store. Preços em reais e entrega imediata.",
+  alternates: { canonical: "/catalogo" },
+  openGraph: {
+    title: "Catálogo · ISStudio Store",
+    description:
+      "Todas as soluções digitais da ISStudio — do CRM ao agente de vendas com IA.",
+    url: "/catalogo",
+  },
 };
 
 export default function CatalogPage() {
