@@ -43,7 +43,7 @@ const gateways: {
   {
     id: "mercadopago",
     name: "Mercado Pago",
-    description: "Checkout transparente com saldo MP, Pix e cartões.",
+    description: "Checkout Pro — Pix, cartão e saldo na conta aprovada.",
     methods: ["Pix", "Cartão", "Saldo MP"],
     accent: "#009ee3",
   },
@@ -156,7 +156,43 @@ export default function CheckoutPage() {
         throw new Error("Resposta inesperada do Asaas.");
       }
 
-      // MP / PayPal — ainda simulados
+      if (method === "mercadopago") {
+        const res = await fetch("/api/payments/mercadopago", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name,
+            email,
+            cpfCnpj: document,
+            subtotal,
+            items: items.map(({ product, quantity }) => ({
+              id: product.id,
+              name: product.name,
+              price: product.price,
+              quantity,
+            })),
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(
+            data?.error || "Falha ao criar checkout Mercado Pago.",
+          );
+        }
+
+        setOrderId(data.orderId || "");
+
+        if (data.flow === "redirect" && data.redirectUrl) {
+          // Carrinho limpo na página de sucesso; mantém itens se o usuário voltar
+          window.location.href = data.redirectUrl;
+          return;
+        }
+
+        throw new Error("Resposta inesperada do Mercado Pago.");
+      }
+
+      // PayPal — ainda simulado
       await new Promise((r) => setTimeout(r, 1200));
       setOrderId(
         `ISS-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`,
@@ -320,7 +356,7 @@ export default function CheckoutPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Checkout</h1>
         <p className="mt-2 text-white/45 text-sm">
-          Asaas integrado (Capivara). Mercado Pago e PayPal ainda simulados.
+          Asaas e Mercado Pago integrados. PayPal ainda simulado.
         </p>
       </div>
 
@@ -451,7 +487,9 @@ export default function CheckoutPage() {
               <Lock size={12} />
               {method === "asaas"
                 ? "Cobrança real via API Asaas (mesma integração do Capivara)."
-                : "Gateway ainda simulado — nenhuma cobrança real."}
+                : method === "mercadopago"
+                  ? "Checkout Pro real — você será redirecionado ao Mercado Pago."
+                  : "Gateway ainda simulado — nenhuma cobrança real."}
             </p>
 
             {error && (
