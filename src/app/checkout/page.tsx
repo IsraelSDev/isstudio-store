@@ -192,13 +192,35 @@ export default function CheckoutPage() {
         throw new Error("Resposta inesperada do Mercado Pago.");
       }
 
-      // PayPal — ainda simulado
-      await new Promise((r) => setTimeout(r, 1200));
-      setOrderId(
-        `ISS-${Date.now().toString(36).toUpperCase()}-${Math.floor(Math.random() * 900 + 100)}`,
-      );
-      setDone(true);
-      clear();
+      const res = await fetch("/api/payments/paypal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          email,
+          subtotal,
+          items: items.map(({ product, quantity }) => ({
+            id: product.id,
+            name: product.name,
+            price: product.price,
+            quantity,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error || "Falha ao criar checkout PayPal.");
+      }
+
+      setOrderId(data.orderId || "");
+
+      if (data.flow === "redirect" && data.redirectUrl) {
+        window.location.href = data.redirectUrl;
+        return;
+      }
+
+      throw new Error("Resposta inesperada do PayPal.");
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -356,7 +378,7 @@ export default function CheckoutPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight">Checkout</h1>
         <p className="mt-2 text-white/45 text-sm">
-          Asaas e Mercado Pago integrados. PayPal ainda simulado.
+          Asaas, Mercado Pago e PayPal integrados.
         </p>
       </div>
 
@@ -489,7 +511,7 @@ export default function CheckoutPage() {
                 ? "Cobrança real via API Asaas (mesma integração do Capivara)."
                 : method === "mercadopago"
                   ? "Checkout Pro real — você será redirecionado ao Mercado Pago."
-                  : "Gateway ainda simulado — nenhuma cobrança real."}
+                  : "Checkout PayPal real — você será redirecionado ao PayPal."}
             </p>
 
             {error && (

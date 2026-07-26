@@ -10,6 +10,11 @@ export default async function CheckoutFailurePage({ searchParams }: Props) {
   const params = await searchParams;
   const status = String(params.status || params.collection_status || "rejected");
   const externalReference = String(params.external_reference || "");
+  const provider = String(params.provider || "mercadopago");
+  const message =
+    provider === "paypal"
+      ? "O pagamento no PayPal foi cancelado ou não foi concluído. Nenhum valor foi cobrado — você pode tentar de novo com outro método."
+      : "O Mercado Pago não aprovou esta tentativa. Você pode tentar de novo com outro método (Pix, cartão ou saldo).";
 
   return (
     <div className="container-page py-20 sm:py-28">
@@ -20,10 +25,7 @@ export default async function CheckoutFailurePage({ searchParams }: Props) {
         <h1 className="text-3xl font-semibold tracking-tight">
           Pagamento não concluído
         </h1>
-        <p className="text-white/50 leading-relaxed">
-          O Mercado Pago não aprovou esta tentativa. Você pode tentar de novo
-          com outro método (Pix, cartão ou saldo).
-        </p>
+        <p className="text-white/50 leading-relaxed">{message}</p>
         {(externalReference || status) && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 py-4 text-sm space-y-2 text-left">
             {externalReference && (

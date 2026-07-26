@@ -10,14 +10,14 @@ Marketplace de soluções digitais — sistemas, APIs, templates, plugins, licen
 - Carrinho com persistência em `localStorage`
 - **Asaas real** (Pix QR + cartão/boleto — mesmo cliente do Capivara)
 - **Mercado Pago Checkout Pro** (Preference API → redirect)
-- PayPal ainda simulado
+- **PayPal Orders v2** (redirect + capture no retorno)
 
 ## Como rodar
 
 ```bash
 npm install
 cp .env.example .env.local
-# Preencha Asaas e/ou Mercado Pago
+# Preencha Asaas, Mercado Pago e/ou PayPal
 npm run dev
 ```
 
@@ -47,6 +47,29 @@ NEXT_PUBLIC_APP_URL=https://seu-dominio.com
 
 Em **localhost**, o redirect funciona; o webhook só chega com URL pública (ngrok/produção).
 
+### PayPal (Orders v2)
+
+1. Acesse [developer.paypal.com/dashboard/applications](https://developer.paypal.com/dashboard/applications)
+2. Selecione a app → copie **Client ID** e **Secret** (aba Sandbox ou Live)
+
+```env
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_ENV=sandbox   # troque para "live" em produção
+PAYPAL_CURRENCY=BRL
+PAYPAL_WEBHOOK_ID=...
+```
+
+3. No dashboard → **Webhooks** → URL `https://seu-dominio.com/api/webhook/paypal`, eventos `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`. Copie o **Webhook ID** gerado.
+
+| Endpoint | Uso |
+|----------|-----|
+| `POST /api/payments/paypal` | Cria a Order e devolve o link de aprovação |
+| `/checkout/paypal/retorno` | Captura a Order aprovada e confirma o pedido |
+| `POST /api/webhook/paypal` | Notificações (assinatura validada via API do PayPal) |
+
+O retorno do PayPal captura o pagamento no servidor — sem `PAYPAL_WEBHOOK_ID` a confirmação continua funcionando, apenas o webhook fica sem validação de assinatura.
+
 ### Asaas
 
 ```env
@@ -75,10 +98,9 @@ ASAAS_WEBHOOK_TOKEN=seu_token
 
 ## Próximos passos
 
-1. PayPal real
-2. Persistência de pedidos (banco + auth)
-3. Painel admin para cadastro de produtos
-4. Entrega automática (download / chave / provisionamento SaaS)
+1. Persistência de pedidos (banco + auth)
+2. Painel admin para cadastro de produtos
+3. Entrega automática (download / chave / provisionamento SaaS)
 
 ## Licença
 
