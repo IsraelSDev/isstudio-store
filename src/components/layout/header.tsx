@@ -54,6 +54,15 @@ export function Header() {
             >
               Planos
             </Link>
+            <Link
+              href="/resgatar"
+              className={cn(
+                "rounded-lg px-3 py-1.5 text-sm text-white/60 transition hover:text-white hover:bg-white/5",
+                pathname.startsWith("/resgatar") && "text-white bg-white/5",
+              )}
+            >
+              Resgatar
+            </Link>
           </nav>
         </div>
 
@@ -112,6 +121,13 @@ export function Header() {
               className="block rounded-lg px-3 py-2.5 text-sm text-white/80 hover:bg-white/5"
             >
               Todas as categorias
+            </Link>
+            <Link
+              href="/resgatar"
+              onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2.5 text-sm text-white/80 hover:bg-white/5"
+            >
+              Resgatar produto
             </Link>
             <div className="pt-2 mt-2 border-t border-white/5 grid grid-cols-2 gap-1">
               {categories.map((c) => (

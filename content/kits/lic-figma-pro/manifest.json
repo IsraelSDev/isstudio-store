@@ -1,0 +1,9 @@
+{
+  "pack": "design-pack-pro",
+  "version": "0.1.0-starter",
+  "totalAssets": 3,
+  "fullPackAssets": 400,
+  "categories": ["icons", "illustrations"],
+  "formats": ["svg", "png"],
+  "license": "LICENCA-COMERCIAL.md"
+}

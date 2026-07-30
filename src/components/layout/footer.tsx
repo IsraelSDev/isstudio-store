@@ -59,13 +59,31 @@ export function Footer() {
 
           <div>
             <h4 className="text-xs font-semibold uppercase tracking-wider text-white/40 mb-4">
-              Pagamentos
+              Cliente
             </h4>
+            <ul className="space-y-2 mb-4">
+              <li>
+                <Link
+                  href="/resgatar"
+                  className="text-sm text-white/60 hover:text-white transition"
+                >
+                  Resgatar produto
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/checkout"
+                  className="text-sm text-white/60 hover:text-white transition"
+                >
+                  Checkout
+                </Link>
+              </li>
+            </ul>
             <p className="text-sm text-white/50 mb-4 leading-relaxed">
-              Aceitamos Asaas, Mercado Pago e PayPal — Pix, cartão e boleto.
+              Pagamentos via Asaas — Pix, cartão e boleto.
             </p>
             <div className="flex flex-wrap gap-2">
-              {["Asaas", "Mercado Pago", "PayPal", "Pix"].map((p) => (
+              {["Asaas", "Pix", "Cartão", "Boleto"].map((p) => (
                 <span
                   key={p}
                   className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-white/70"

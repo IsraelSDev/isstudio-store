@@ -8,81 +8,80 @@ Marketplace de soluções digitais — sistemas, APIs, templates, plugins, licen
 - **React 19** + TypeScript
 - **Tailwind CSS v4**
 - Carrinho com persistência em `localStorage`
-- **Asaas real** (Pix QR + cartão/boleto — mesmo cliente do Capivara)
-- **Mercado Pago Checkout Pro** (Preference API → redirect)
-- **PayPal Orders v2** (redirect + capture no retorno)
+- **Asaas** (Pix QR + cartão/boleto)
+- **Supabase** (pedidos + hash dos códigos de resgate)
+- **Resend** (e-mail com o código)
+- Kits de código-fonte em `content/kits/` (ZIP gerado na hora do download)
+
+## Fluxo de entrega
+
+1. Cliente finaliza no `/checkout` (só Asaas).
+2. O servidor cria o pedido `pending` no Supabase e a cobrança no Asaas.
+3. Webhook (ou polling do Pix) confirma o pagamento → gera código `ABCD-EFGH-JKLM`.
+4. O **hash** do código é gravado no banco; o código em texto vai no e-mail (Resend).
+5. Em `/resgatar`, o cliente digita o código e baixa o `.zip` de cada produto.
+
+O código em claro **não** fica no banco. Só o HMAC-SHA256 (`REDEEM_CODE_SECRET`).
 
 ## Como rodar
 
 ```bash
 npm install
 cp .env.example .env.local
-# Preencha Asaas, Mercado Pago e/ou PayPal
+# Preencha Asaas, Supabase e Resend
 npm run dev
 ```
 
 Abra [http://localhost:3000](http://localhost:3000).
 
-### Mercado Pago (Checkout Pro)
+### 1. Supabase
 
-1. Acesse [developers.mercadopago.com.br/panel/app](https://www.mercadopago.com.br/developers/panel/app)
-2. Crie/selecione a aplicação → **Credenciais de produção** (conta aprovada)
-3. Copie o **Access Token** para o `.env.local`:
-
-```env
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-...
-MERCADOPAGO_ENV=production
-NEXT_PUBLIC_APP_URL=https://seu-dominio.com
-```
-
-4. No painel MP → **Webhooks**: URL `https://seu-dominio.com/api/webhook/mercadopago` (evento `payment`)
-
-| Endpoint | Uso |
-|----------|-----|
-| `POST /api/payments/mercadopago` | Cria Preference e devolve `init_point` |
-| `POST /api/webhook/mercadopago` | Notificação de pagamento |
-| `/checkout/sucesso` | Retorno aprovado |
-| `/checkout/falha` | Retorno rejeitado |
-| `/checkout/pendente` | Pix/boleto em análise |
-
-Em **localhost**, o redirect funciona; o webhook só chega com URL pública (ngrok/produção).
-
-### PayPal (Orders v2)
-
-1. Acesse [developer.paypal.com/dashboard/applications](https://developer.paypal.com/dashboard/applications)
-2. Selecione a app → copie **Client ID** e **Secret** (aba Sandbox ou Live)
+1. Crie um projeto em [supabase.com](https://supabase.com)
+2. SQL Editor → cole e rode `supabase/schema.sql`
+3. Project Settings → API → copie **URL** e **service_role** para o `.env.local`
 
 ```env
-PAYPAL_CLIENT_ID=...
-PAYPAL_CLIENT_SECRET=...
-PAYPAL_ENV=sandbox   # troque para "live" em produção
-PAYPAL_CURRENCY=BRL
-PAYPAL_WEBHOOK_ID=...
+SUPABASE_URL=https://xxxx.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
+REDEEM_CODE_SECRET=cole_um_segredo_longo
+DOWNLOAD_TOKEN_SECRET=cole_outro_segredo_longo
 ```
 
-3. No dashboard → **Webhooks** → URL `https://seu-dominio.com/api/webhook/paypal`, eventos `CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `PAYMENT.CAPTURE.DENIED`, `PAYMENT.CAPTURE.REFUNDED`. Copie o **Webhook ID** gerado.
-
-| Endpoint | Uso |
-|----------|-----|
-| `POST /api/payments/paypal` | Cria a Order e devolve o link de aprovação |
-| `/checkout/paypal/retorno` | Captura a Order aprovada e confirma o pedido |
-| `POST /api/webhook/paypal` | Notificações (assinatura validada via API do PayPal) |
-
-O retorno do PayPal captura o pagamento no servidor — sem `PAYPAL_WEBHOOK_ID` a confirmação continua funcionando, apenas o webhook fica sem validação de assinatura.
-
-### Asaas
+### 2. Asaas
 
 ```env
 ASAAS_API_KEY=$aact_...
 ASAAS_ENV=sandbox
 ASAAS_WEBHOOK_TOKEN=seu_token
+NEXT_PUBLIC_APP_URL=https://seu-dominio.com
 ```
+
+No painel Asaas → Webhooks: `https://seu-dominio.com/api/webhook/asaas`  
+Eventos: `PAYMENT_RECEIVED`, `PAYMENT_CONFIRMED`.
 
 | Endpoint | Uso |
 |----------|-----|
-| `POST /api/payments/asaas` | Cria cobrança (Pix / cartão / boleto) |
-| `GET /api/payments/asaas/[id]/status` | Polling de confirmação Pix |
-| `POST /api/webhook/asaas` | Webhook `PAYMENT_RECEIVED` / `PAYMENT_CONFIRMED` |
+| `POST /api/payments/asaas` | Cria pedido + cobrança |
+| `GET /api/payments/asaas/[id]/status` | Polling Pix (também dispara a entrega) |
+| `POST /api/webhook/asaas` | Confirma pagamento e emite o código |
+
+Em **localhost** o webhook não chega: o polling do Pix cuida da entrega.
+
+### 3. Resend
+
+```env
+RESEND_API_KEY=re_...
+RESEND_FROM=ISStudio Store <no-reply@seu-dominio.com>
+```
+
+Sem `RESEND_API_KEY` o pagamento ainda confirma e o código aparece na tela de sucesso do Pix; só o e-mail fica desligado.
+
+## Kits de código-fonte
+
+Cada produto do catálogo tem uma pasta em `content/kits/<product-id>/`.  
+No download, o servidor empacota a pasta (+ `_shared/` + `LICENCA.txt`) em `.zip`.
+
+Para atualizar um kit, edite os arquivos e faça deploy — não há passo de upload.
 
 ## Rotas
 
@@ -90,17 +89,24 @@ ASAAS_WEBHOOK_TOKEN=seu_token
 |------|-----------|
 | `/` | Home |
 | `/catalogo` | Catálogo completo |
-| `/categorias` | Lista de categorias |
 | `/categorias/[slug]` | Produtos da categoria |
 | `/produto/[slug]` | Detalhe do produto |
 | `/assinaturas` | Planos Studio+ |
-| `/checkout` | Checkout multi-gateway |
+| `/checkout` | Checkout Asaas |
+| `/resgatar` | Resgate com código do e-mail |
 
-## Próximos passos
+| API | Descrição |
+|-----|-----------|
+| `POST /api/orders/redeem` | Valida o código e devolve tokens de download |
+| `GET /api/downloads/[productId]?token=...` | Baixa o ZIP (token de 1h) |
 
-1. Persistência de pedidos (banco + auth)
-2. Painel admin para cadastro de produtos
-3. Entrega automática (download / chave / provisionamento SaaS)
+## Segurança (resumo)
+
+- Preço recalculado no servidor a partir do catálogo (cliente só manda `id` + `quantity`)
+- Código de resgate armazenado como HMAC, nunca em texto
+- Links de download com token assinado de vida curta
+- Rate limit no endpoint de resgate
+- RLS ligado nas tabelas; só a `service_role` (servidor) acessa
 
 ## Licença
 

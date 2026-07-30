@@ -13,6 +13,14 @@ import {
   waitForPixQrForPayment,
   type AsaasBillingType,
 } from "@/lib/asaas";
+import { products } from "@/lib/catalog";
+import {
+  attachAsaasIds,
+  createPendingOrder,
+  generateOrderRef,
+  type OrderItem,
+} from "@/lib/orders";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 export const runtime = "nodejs";
 
@@ -23,19 +31,54 @@ interface CheckoutBody {
   email: string;
   cpfCnpj: string;
   billingType: BillingMethod;
-  items: {
-    id: string;
-    name: string;
-    price: number;
-    quantity: number;
-    pricingModel: string;
-    billingPeriod?: string;
-  }[];
-  subtotal: number;
+  items: { id: string; quantity: number }[];
 }
 
 function digitsOnly(value: string) {
   return String(value || "").replace(/\D/g, "");
+}
+
+/**
+ * Monta os itens a partir do catálogo do servidor, ignorando nome e preço
+ * enviados pelo cliente — o valor cobrado nunca deve vir do navegador.
+ */
+function resolveItems(
+  raw: CheckoutBody["items"],
+): { items: OrderItem[]; subtotal: number } | { error: string } {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return { error: "Carrinho vazio." };
+  }
+
+  const items: OrderItem[] = [];
+  for (const entry of raw) {
+    const product = products.find((p) => p.id === entry?.id);
+    if (!product) {
+      return { error: `Produto não encontrado no catálogo: ${entry?.id}` };
+    }
+
+    const quantity = Math.floor(Number(entry.quantity) || 0);
+    if (quantity < 1 || quantity > 99) {
+      return { error: `Quantidade inválida para ${product.name}.` };
+    }
+
+    items.push({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      price: product.price,
+      quantity,
+      pricingModel: product.pricingModel,
+      billingPeriod: product.billingPeriod,
+    });
+  }
+
+  const subtotal = items.reduce(
+    (total, item) => total + item.price * item.quantity,
+    0,
+  );
+  if (subtotal <= 0) return { error: "Valor do pedido inválido." };
+
+  return { items, subtotal };
 }
 
 export async function POST(req: Request) {
@@ -50,6 +93,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Sem banco não há como emitir o código de resgate: melhor recusar antes de
+    // cobrar do que receber o pagamento e não conseguir entregar o produto.
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        {
+          error:
+            "Entrega automática indisponível. Defina SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY antes de aceitar pagamentos.",
+        },
+        { status: 503 },
+      );
+    }
+
     const body = (await req.json()) as CheckoutBody;
     const email = String(body.email || "")
       .trim()
@@ -57,8 +112,6 @@ export async function POST(req: Request) {
     const name = String(body.name || "").trim();
     const cpfCnpj = digitsOnly(body.cpfCnpj);
     const billingType = (body.billingType || "PIX") as BillingMethod;
-    const items = Array.isArray(body.items) ? body.items : [];
-    const subtotal = Number(body.subtotal) || 0;
 
     if (!email || !name) {
       return NextResponse.json(
@@ -72,12 +125,6 @@ export async function POST(req: Request) {
         { status: 400 },
       );
     }
-    if (items.length === 0 || subtotal <= 0) {
-      return NextResponse.json(
-        { error: "Carrinho vazio ou valor inválido." },
-        { status: 400 },
-      );
-    }
     if (!["PIX", "CREDIT_CARD", "BOLETO"].includes(billingType)) {
       return NextResponse.json(
         { error: "Forma de pagamento Asaas inválida." },
@@ -85,13 +132,25 @@ export async function POST(req: Request) {
       );
     }
 
-    const orderId = `ISS-${Date.now().toString(36).toUpperCase()}-${Math.floor(
-      Math.random() * 900 + 100,
-    )}`;
+    const resolved = resolveItems(body.items);
+    if ("error" in resolved) {
+      return NextResponse.json({ error: resolved.error }, { status: 400 });
+    }
+    const { items, subtotal } = resolved;
+
+    const orderId = generateOrderRef();
     const description =
       items.length === 1
         ? `ISStudio Store — ${items[0].name}`
         : `ISStudio Store — ${items.length} itens (${orderId})`;
+
+    const order = await createPendingOrder({
+      orderRef: orderId,
+      customerName: name,
+      customerEmail: email,
+      amount: subtotal,
+      items,
+    });
 
     const customer = await findOrCreateCustomer({
       name,
@@ -107,8 +166,7 @@ export async function POST(req: Request) {
 
     // Assinaturas + cartão → subscription Asaas (mesmo fluxo do Capivara)
     if (allSubscriptions && billingType === "CREDIT_CARD") {
-      const cycle =
-        items[0]?.billingPeriod === "year" ? "YEARLY" : "MONTHLY";
+      const cycle = items[0]?.billingPeriod === "year" ? "YEARLY" : "MONTHLY";
       const subscription = await createSubscription({
         customerId: customer.id,
         billingType: "CREDIT_CARD",
@@ -128,6 +186,11 @@ export async function POST(req: Request) {
         }
         await new Promise((r) => setTimeout(r, 1000));
       }
+
+      await attachAsaasIds(order.id, {
+        subscriptionId: asaasSubId,
+        paymentId: (firstPayment?.id as string | undefined) || null,
+      });
 
       const redirectUrl =
         (firstPayment?.invoiceUrl as string | undefined) ||
@@ -167,6 +230,8 @@ export async function POST(req: Request) {
       });
 
       const paymentId = String(payment.id);
+      await attachAsaasIds(order.id, { paymentId });
+
       if (String(payment.billingType || "").toUpperCase() !== "PIX") {
         return NextResponse.json(
           {
@@ -211,8 +276,9 @@ export async function POST(req: Request) {
       externalReference,
     });
 
-    const redirectUrl =
-      payment?.invoiceUrl || payment?.bankSlipUrl || null;
+    await attachAsaasIds(order.id, { paymentId: String(payment.id) });
+
+    const redirectUrl = payment?.invoiceUrl || payment?.bankSlipUrl || null;
     if (!redirectUrl) {
       return NextResponse.json(
         {
@@ -233,9 +299,6 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     console.error("[asaas] checkout", formatAsaasError(e));
-    return NextResponse.json(
-      { error: formatAsaasError(e) },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: formatAsaasError(e) }, { status: 500 });
   }
 }

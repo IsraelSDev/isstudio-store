@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: change-me
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  app:
+    image: your-app:latest
+    depends_on: [db, redis]
+    environment:
+      DATABASE_URL: postgresql://postgres:change-me@db:5432/postgres
+      REDIS_URL: redis://redis:6379
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:

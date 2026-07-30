@@ -1,0 +1,23 @@
+:root {
+  /* Aurora — dark premium. Troque estes valores para rebrandar o kit inteiro. */
+  --aurora-bg: #07070c;
+  --aurora-surface: #0f0f18;
+  --aurora-border: rgba(255, 255, 255, 0.08);
+  --aurora-text: #f4f4f8;
+  --aurora-muted: #8b8ba0;
+  --aurora-brand: #8b72ff;
+  --aurora-brand-soft: rgba(139, 114, 255, 0.15);
+  --aurora-aqua: #35e0d6;
+  --aurora-radius: 14px;
+  --aurora-shadow: 0 24px 60px -24px rgba(139, 114, 255, 0.55);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --aurora-bg: #f7f7fb;
+    --aurora-surface: #ffffff;
+    --aurora-border: rgba(15, 15, 24, 0.08);
+    --aurora-text: #0f0f18;
+    --aurora-muted: #5c5c72;
+  }
+}

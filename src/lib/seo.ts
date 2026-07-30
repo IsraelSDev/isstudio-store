@@ -3,7 +3,7 @@ export const siteConfig = {
   shortName: "ISStudio",
   tagline: "Soluções digitais para vender e escalar",
   description:
-    "Marketplace de sistemas, APIs, templates, plugins, SaaS, IA, white label, hospedagem e assinaturas. Pague com Asaas, Mercado Pago ou PayPal.",
+    "Marketplace de sistemas, APIs, templates, plugins, SaaS, IA, white label, hospedagem e assinaturas. Pague com Asaas e resgate o código-fonte após a compra.",
   locale: "pt_BR",
   language: "pt-BR",
   keywords: [

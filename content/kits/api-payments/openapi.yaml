@@ -1,0 +1,148 @@
+openapi: 3.1.0
+info:
+  title: Payments Gateway API
+  version: 0.1.0
+  description: |
+    Abstração única para cobrar via Asaas, Mercado Pago e PayPal.
+    Valores sempre em centavos (inteiro). Status sempre normalizado.
+servers:
+  - url: http://localhost:4000
+    description: Desenvolvimento
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /health:
+    get:
+      summary: Status da API e provedores configurados
+      security: []
+      responses:
+        "200":
+          description: OK
+
+  /charges:
+    post:
+      summary: Cria uma cobrança
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCharge"
+      responses:
+        "201":
+          description: Cobrança criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Charge"
+        "400":
+          description: Payload inválido
+        "409":
+          description: externalReference já utilizado
+
+  /charges/{id}:
+    get:
+      summary: Consulta uma cobrança
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Cobrança
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Charge"
+        "404":
+          description: Não encontrada
+
+  /webhooks/{provider}:
+    post:
+      summary: Recebe notificações do gateway
+      security: []
+      parameters:
+        - name: provider
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [asaas, mercadopago, paypal]
+      responses:
+        "200":
+          description: Evento recebido
+        "401":
+          description: Assinatura inválida
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+
+  schemas:
+    PaymentStatus:
+      type: string
+      enum: [pending, paid, failed, refunded]
+
+    PaymentMethod:
+      type: string
+      enum: [pix, card, boleto, wallet]
+
+    CreateCharge:
+      type: object
+      required: [externalReference, amountInCents, method, description, customer]
+      properties:
+        externalReference:
+          type: string
+          description: Sua referência do pedido. Também é a chave de idempotência.
+        amountInCents:
+          type: integer
+          minimum: 1
+        method:
+          $ref: "#/components/schemas/PaymentMethod"
+        description:
+          type: string
+        customer:
+          type: object
+          required: [name, email]
+          properties:
+            name:
+              type: string
+            email:
+              type: string
+              format: email
+            taxId:
+              type: string
+              description: CPF/CNPJ somente dígitos.
+
+    Charge:
+      type: object
+      properties:
+        providerId:
+          type: string
+        provider:
+          type: string
+          enum: [asaas, mercadopago, paypal]
+        externalReference:
+          type: string
+        status:
+          $ref: "#/components/schemas/PaymentStatus"
+        amountInCents:
+          type: integer
+        checkoutUrl:
+          type: [string, "null"]
+        pix:
+          type: [object, "null"]
+          properties:
+            qrCodePayload:
+              type: [string, "null"]
+            qrCodeBase64:
+              type: [string, "null"]
+            expiresAt:
+              type: [string, "null"]

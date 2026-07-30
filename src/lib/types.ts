@@ -49,4 +49,4 @@ export interface CartItem {
   quantity: number;
 }
 
-export type PaymentMethod = "asaas" | "mercadopago" | "paypal";
+export type PaymentMethod = "asaas";
